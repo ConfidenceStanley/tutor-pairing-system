@@ -1,20 +1,30 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { GraduationCap, UserRound, BookOpen, Plus, X } from "lucide-react";
+import {
+  UserRound,
+  BookOpen,
+  Plus,
+  X,
+  Eye,
+  EyeOff,
+  ArrowLeft,
+  UserPlus,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
 import { registerUser } from "../api/authApi";
 import { DEPARTMENTS, LEVELS } from "../utils/constants";
+import AuthLayout from "../layouts/AuthLayout";
 
 const Register = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
-
   const [selectedRole, setSelectedRole] = useState(null);
   const [subjects, setSubjects] = useState([]);
   const [subjectInput, setSubjectInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -42,29 +52,16 @@ const Register = () => {
   };
 
   const onSubmit = async (data) => {
-    if (!selectedRole) {
-      toast.error("Please select a role");
-      return;
-    }
-
     if (selectedRole === "tutor" && subjects.length === 0) {
       toast.error("Please add at least one subject you can teach");
       return;
     }
-
     setLoading(true);
-
     try {
-      const payload = {
-        ...data,
-        role: selectedRole,
-        subjects: selectedRole === "tutor" ? subjects : [],
-      };
-
+      const payload = { ...data, role: selectedRole, subjects: selectedRole === "tutor" ? subjects : [] };
       const response = await registerUser(payload);
       login(response.data, response.data.token);
       toast.success("Account created successfully");
-
       if (selectedRole === "student") navigate("/student/dashboard");
       if (selectedRole === "tutor") navigate("/tutor/dashboard");
     } catch (error) {
@@ -74,244 +71,272 @@ const Register = () => {
     }
   };
 
+  const inputClass =
+    "w-full border border-surface-200 rounded-xl px-4 py-3 text-sm text-surface-800 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-white";
+
+  const selectClass =
+    "w-full border border-surface-200 rounded-xl px-4 py-3 text-sm text-surface-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-white";
+
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-10">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 w-full max-w-lg p-8">
-        <div className="flex items-center gap-2 text-blue-600 font-bold text-xl mb-6">
-          <GraduationCap size={26} />
-          <span>TutorPair</span>
+    <AuthLayout>
+      <div className="bg-white rounded-2xl shadow-sm border border-surface-100 p-8">
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-surface-900 mb-1">
+            Create an account
+          </h2>
+          <p className="text-surface-500 text-sm">
+            Already have an account?{" "}
+            <Link
+              to="/login"
+              className="text-primary-600 font-medium hover:underline"
+            >
+              Sign in
+            </Link>
+          </p>
         </div>
 
-        <h2 className="text-2xl font-bold text-gray-800 mb-1">Create an account</h2>
-        <p className="text-gray-500 text-sm mb-6">
-          Already have an account?{" "}
-          <Link to="/login" className="text-blue-600 hover:underline">
-            Sign in
-          </Link>
-        </p>
-
         {!selectedRole ? (
-          <div>
-            <p className="text-gray-700 font-medium mb-4">I am registering as a:</p>
+          <div className="animate-scale-in">
+            <p className="text-sm font-medium text-surface-700 mb-4">
+              I am registering as a:
+            </p>
             <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={() => setSelectedRole("student")}
-                className="border-2 border-gray-200 rounded-xl p-6 flex flex-col items-center gap-3 hover:border-blue-500 hover:bg-blue-50 transition-all"
+                className="group border-2 border-surface-200 rounded-2xl p-6 flex flex-col items-center gap-3 hover:border-primary-400 hover:bg-primary-50 transition-all duration-200 cursor-pointer"
               >
-                <UserRound size={36} className="text-blue-600" />
-                <span className="font-semibold text-gray-700">Student</span>
-                <span className="text-xs text-gray-400 text-center">
-                  I need help with my studies
-                </span>
+                <div className="w-14 h-14 bg-surface-100 group-hover:bg-primary-100 rounded-2xl flex items-center justify-center transition-colors duration-200">
+                  <UserRound size={28} className="text-surface-500 group-hover:text-primary-600 transition-colors duration-200" />
+                </div>
+                <div className="text-center">
+                  <p className="font-semibold text-surface-800 text-sm">Student</p>
+                  <p className="text-xs text-surface-400 mt-0.5">I need academic help</p>
+                </div>
               </button>
 
               <button
                 onClick={() => setSelectedRole("tutor")}
-                className="border-2 border-gray-200 rounded-xl p-6 flex flex-col items-center gap-3 hover:border-blue-500 hover:bg-blue-50 transition-all"
+                className="group border-2 border-surface-200 rounded-2xl p-6 flex flex-col items-center gap-3 hover:border-primary-400 hover:bg-primary-50 transition-all duration-200 cursor-pointer"
               >
-                <BookOpen size={36} className="text-blue-600" />
-                <span className="font-semibold text-gray-700">Tutor</span>
-                <span className="text-xs text-gray-400 text-center">
-                  I want to teach and earn
-                </span>
+                <div className="w-14 h-14 bg-surface-100 group-hover:bg-primary-100 rounded-2xl flex items-center justify-center transition-colors duration-200">
+                  <BookOpen size={28} className="text-surface-500 group-hover:text-primary-600 transition-colors duration-200" />
+                </div>
+                <div className="text-center">
+                  <p className="font-semibold text-surface-800 text-sm">Tutor</p>
+                  <p className="text-xs text-surface-400 mt-0.5">I want to teach</p>
+                </div>
               </button>
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 animate-scale-in">
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-sm text-gray-500">Registering as:</span>
-              <span className="bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full capitalize">
-                {selectedRole}
-              </span>
               <button
                 type="button"
                 onClick={() => setSelectedRole(null)}
-                className="text-xs text-gray-400 hover:text-red-500 ml-auto"
+                className="flex items-center gap-1 text-xs text-surface-400 hover:text-surface-600 transition-colors"
               >
-                Change
+                <ArrowLeft size={13} />
+                Back
               </button>
+              <span className="bg-primary-100 text-primary-700 text-xs font-semibold px-3 py-1 rounded-full capitalize ml-auto">
+                {selectedRole}
+              </span>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Full Name
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. John Doe"
-                className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                {...register("name", { required: "Full name is required" })}
-              />
-              {errors.name && (
-                <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>
-              )}
-            </div>
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-surface-700 mb-1.5">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. John Doe"
+                  className={inputClass}
+                  {...register("name", { required: "Full name is required" })}
+                />
+                {errors.name && (
+                  <p className="text-danger text-xs mt-1.5">{errors.name.message}</p>
+                )}
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email Address
-              </label>
-              <input
-                type="email"
-                placeholder="e.g. john@example.com"
-                className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                {...register("email", {
-                  required: "Email is required",
-                  pattern: {
-                    value: /^\S+@\S+\.\S+$/,
-                    message: "Enter a valid email address",
-                  },
-                })}
-              />
-              {errors.email && (
-                <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
-              )}
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-surface-700 mb-1.5">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  placeholder="john@example.com"
+                  className={inputClass}
+                  {...register("email", {
+                    required: "Email is required",
+                    pattern: {
+                      value: /^\S+@\S+\.\S+$/,
+                      message: "Enter a valid email address",
+                    },
+                  })}
+                />
+                {errors.email && (
+                  <p className="text-danger text-xs mt-1.5">{errors.email.message}</p>
+                )}
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Password
-              </label>
-              <input
-                type="password"
-                placeholder="Minimum 6 characters"
-                className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                {...register("password", {
-                  required: "Password is required",
-                  minLength: {
-                    value: 6,
-                    message: "Password must be at least 6 characters",
-                  },
-                })}
-              />
-              {errors.password && (
-                <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Department
-              </label>
-              <select
-                className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                {...register("department", { required: "Department is required" })}
-              >
-                <option value="">Select department</option>
-                {DEPARTMENTS.map((dept) => (
-                  <option key={dept} value={dept}>
-                    {dept}
-                  </option>
-                ))}
-              </select>
-              {errors.department && (
-                <p className="text-red-500 text-xs mt-1">{errors.department.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Level
-              </label>
-              <select
-                className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                {...register("level", { required: "Level is required" })}
-              >
-                <option value="">Select level</option>
-                {LEVELS.map((lvl) => (
-                  <option key={lvl} value={lvl}>
-                    {lvl}
-                  </option>
-                ))}
-              </select>
-              {errors.level && (
-                <p className="text-red-500 text-xs mt-1">{errors.level.message}</p>
-              )}
-            </div>
-
-            {selectedRole === "tutor" && (
-              <>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Bio
-                  </label>
-                  <textarea
-                    rows={3}
-                    placeholder="Tell students about yourself and your teaching style..."
-                    className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                    {...register("bio")}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Session Rate (NGN per session)
-                  </label>
+              <div>
+                <label className="block text-sm font-medium text-surface-700 mb-1.5">
+                  Password
+                </label>
+                <div className="relative">
                   <input
-                    type="number"
-                    placeholder="e.g. 2500"
-                    className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    {...register("sessionRate")}
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Minimum 6 characters"
+                    className={`${inputClass} pr-11`}
+                    {...register("password", {
+                      required: "Password is required",
+                      minLength: {
+                        value: 6,
+                        message: "Password must be at least 6 characters",
+                      },
+                    })}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-surface-400 hover:text-surface-600 transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                  </button>
                 </div>
+                {errors.password && (
+                  <p className="text-danger text-xs mt-1.5">{errors.password.message}</p>
+                )}
+              </div>
 
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Subjects You Can Teach
+                  <label className="block text-sm font-medium text-surface-700 mb-1.5">
+                    Department
                   </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={subjectInput}
-                      onChange={(e) => setSubjectInput(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      placeholder="e.g. Data Structures"
-                      className="flex-1 border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={addSubject}
-                      className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700"
-                    >
-                      <Plus size={18} />
-                    </button>
-                  </div>
-
-                  {subjects.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {subjects.map((subject) => (
-                        <span
-                          key={subject}
-                          className="flex items-center gap-1 bg-blue-100 text-blue-700 text-xs px-3 py-1 rounded-full"
-                        >
-                          {subject}
-                          <button
-                            type="button"
-                            onClick={() => removeSubject(subject)}
-                            className="hover:text-red-500"
-                          >
-                            <X size={12} />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
+                  <select
+                    className={selectClass}
+                    {...register("department", { required: "Required" })}
+                  >
+                    <option value="">Select</option>
+                    {DEPARTMENTS.map((dept) => (
+                      <option key={dept} value={dept}>{dept}</option>
+                    ))}
+                  </select>
+                  {errors.department && (
+                    <p className="text-danger text-xs mt-1.5">{errors.department.message}</p>
                   )}
                 </div>
-              </>
-            )}
+
+                <div>
+                  <label className="block text-sm font-medium text-surface-700 mb-1.5">
+                    Level
+                  </label>
+                  <select
+                    className={selectClass}
+                    {...register("level", { required: "Required" })}
+                  >
+                    <option value="">Select</option>
+                    {LEVELS.map((lvl) => (
+                      <option key={lvl} value={lvl}>{lvl}</option>
+                    ))}
+                  </select>
+                  {errors.level && (
+                    <p className="text-danger text-xs mt-1.5">{errors.level.message}</p>
+                  )}
+                </div>
+              </div>
+
+              {selectedRole === "tutor" && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-surface-700 mb-1.5">
+                      Bio
+                    </label>
+                    <textarea
+                      rows={3}
+                      placeholder="Tell students about yourself and your teaching style..."
+                      className={`${inputClass} resize-none`}
+                      {...register("bio")}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-surface-700 mb-1.5">
+                      Session Rate (NGN per session)
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="e.g. 2500"
+                      className={inputClass}
+                      {...register("sessionRate")}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-surface-700 mb-1.5">
+                      Subjects You Can Teach
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={subjectInput}
+                        onChange={(e) => setSubjectInput(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        placeholder="e.g. Data Structures"
+                        className={inputClass}
+                      />
+                      <button
+                        type="button"
+                        onClick={addSubject}
+                        className="bg-primary-600 text-white px-3 py-2 rounded-xl hover:bg-primary-700 transition-colors flex-shrink-0"
+                      >
+                        <Plus size={18} />
+                      </button>
+                    </div>
+
+                    {subjects.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2.5">
+                        {subjects.map((subject) => (
+                          <span
+                            key={subject}
+                            className="flex items-center gap-1.5 bg-primary-50 text-primary-700 text-xs font-medium px-3 py-1.5 rounded-full border border-primary-100"
+                          >
+                            {subject}
+                            <button
+                              type="button"
+                              onClick={() => removeSubject(subject)}
+                              className="hover:text-danger transition-colors"
+                            >
+                              <X size={12} />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+              className="w-full flex items-center justify-center gap-2 bg-primary-600 text-white py-3 rounded-xl font-medium hover:bg-primary-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200 shadow-sm shadow-primary-200 mt-2"
             >
+              {loading ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <UserPlus size={16} />
+              )}
               {loading ? "Creating account..." : "Create Account"}
             </button>
           </form>
         )}
       </div>
-    </div>
+    </AuthLayout>
   );
 };
 

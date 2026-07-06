@@ -22,6 +22,9 @@ export const DEPARTMENTS = [
   "Mass Communication",
   "Nursing",
   "Pharmacy",
+  "Mathematics",
+  "Physics",
+  "Chemistry",
 ];
 
 export const LEVELS = ["ND1", "ND2", "HND1", "HND2"];
