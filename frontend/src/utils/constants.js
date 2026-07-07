@@ -12,22 +12,30 @@ export const SESSION_STATUS = {
   CANCELLED: "cancelled",
 };
 
+export const LEVELS = ["ND1", "ND2", "HND1", "HND2"];
+
 export const DEPARTMENTS = [
   "Computer Science",
   "Electrical Engineering",
   "Mechanical Engineering",
   "Civil Engineering",
   "Business Administration",
-  "Accounting",
+  "Accountancy",
   "Mass Communication",
-  "Nursing",
-  "Pharmacy",
+  "Public Administration",
+  "Science Laboratory Technology",
+  "Statistics",
   "Mathematics",
   "Physics",
   "Chemistry",
+  "Biology",
+  "Agricultural Technology",
+  "Food Technology",
+  "Hospitality Management",
+  "Library and Information Science",
+  "Office Technology Management",
+  "Banking and Finance",
 ];
-
-export const LEVELS = ["ND1", "ND2", "HND1", "HND2"];
 
 export const DAYS = [
   "Monday",

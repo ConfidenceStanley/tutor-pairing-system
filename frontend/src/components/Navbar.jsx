@@ -1,206 +1,303 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  GraduationCap,
-  LogOut,
   LayoutDashboard,
-  Search,
-  MessageSquare,
+  LogOut,
   Menu,
   X,
+  User,
+  BookOpen,
+  GraduationCap,
+  Clock,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  const getDashboardLink = () => {
-    if (user?.role === "student") return "/student/dashboard";
-    if (user?.role === "tutor") return "/tutor/dashboard";
-    if (user?.role === "admin") return "/admin/dashboard";
+  const getDashboardPath = () => {
+    if (!user) return "/login";
+    if (user.role === "student") return "/student/dashboard";
+    if (user.role === "tutor") return "/tutor/dashboard";
+    if (user.role === "admin") return "/admin/dashboard";
     return "/";
   };
 
-  const closeMenu = () => setMenuOpen(false);
+  const getInitials = (name) => {
+    if (!name) return "?";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const handleLogout = () => {
+    setDropdownOpen(false);
+    setMobileOpen(false);
+    logout();
+  };
 
   return (
-    <nav className="bg-white/80 backdrop-blur-lg border-b border-surface-100 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
-        <Link to="/" onClick={closeMenu} className="flex items-center gap-2.5 group">
-          <div className="bg-primary-600 text-white p-1.5 rounded-lg group-hover:bg-primary-700 transition-colors duration-200">
-            <GraduationCap size={20} />
-          </div>
-          <span className="font-bold text-lg text-surface-800 tracking-tight">
-            Tutor<span className="text-primary-600">Pair</span>
-          </span>
-        </Link>
-
-        <div className="hidden md:flex items-center gap-2">
-          {user ? (
-            <>
-              {user.role === "student" && (
-                <Link
-                  to="/tutors"
-                  className="flex items-center gap-1.5 text-sm text-surface-600 hover:text-primary-600 px-3 py-2 rounded-lg hover:bg-primary-50 transition-all duration-200"
-                >
-                  <Search size={15} />
-                  <span>Find Tutors</span>
-                </Link>
-              )}
-
-              <Link
-                to="/messages"
-                className="flex items-center gap-1.5 text-sm text-surface-600 hover:text-primary-600 px-3 py-2 rounded-lg hover:bg-primary-50 transition-all duration-200"
-              >
-                <MessageSquare size={15} />
-                <span>Messages</span>
-              </Link>
-
-              <button
-                onClick={() => navigate(getDashboardLink())}
-                className="flex items-center gap-1.5 text-sm text-surface-600 hover:text-primary-600 px-3 py-2 rounded-lg hover:bg-primary-50 transition-all duration-200"
-              >
-                <LayoutDashboard size={15} />
-                <span>Dashboard</span>
-              </button>
-
-              <div className="flex items-center gap-3 ml-2 pl-3 border-l border-surface-200">
-                {user.profileImage ? (
-                  <img
-                    src={user.profileImage}
-                    alt={user.name}
-                    className="w-8 h-8 rounded-full object-cover ring-2 ring-primary-100"
-                  />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center ring-2 ring-primary-200">
-                    <span className="text-primary-700 text-xs font-bold">
-                      {user.name?.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                )}
-                <span className="text-sm font-medium text-surface-700">
-                  {user.name?.split(" ")[0]}
-                </span>
-                <button
-                  onClick={logout}
-                  className="flex items-center text-surface-400 hover:text-danger p-1.5 rounded-lg hover:bg-red-50 transition-all duration-200"
-                >
-                  <LogOut size={15} />
-                </button>
-              </div>
-            </>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Link
-                to="/login"
-                className="text-sm font-medium text-surface-600 hover:text-primary-600 px-4 py-2 rounded-lg hover:bg-primary-50 transition-all duration-200"
-              >
-                Sign In
-              </Link>
-              <Link
-                to="/register"
-                className="text-sm font-medium bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-all duration-200 shadow-sm shadow-primary-200"
-              >
-                Get Started
-              </Link>
+    <nav className="bg-white border-b border-surface-100 sticky top-0 z-50 shadow-sm">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo */}
+          <Link
+            to="/"
+            className="flex items-center gap-2 text-primary-600 font-bold text-xl"
+          >
+            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
+              <GraduationCap size={18} className="text-white" />
             </div>
-          )}
-        </div>
+            TutorPair
+          </Link>
 
-        <button
-          onClick={() => setMenuOpen(!menuOpen)}
-          className="md:hidden p-2 rounded-lg text-surface-700 hover:bg-surface-100 transition-colors"
-        >
-          {menuOpen ? <X size={22} /> : <Menu size={22} />}
-        </button>
-      </div>
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-6">
+            <Link
+              to="/tutors"
+              className="text-surface-600 hover:text-primary-600 font-medium transition-colors text-sm"
+            >
+              Find Tutors
+            </Link>
 
-      {menuOpen && (
-        <div className="md:hidden bg-white border-t border-surface-100 animate-fade-in">
-          <div className="px-4 py-4 space-y-1">
             {user ? (
-              <>
-                <div className="flex items-center gap-3 p-3 bg-surface-50 rounded-xl mb-3">
+              /* Logged in - User Menu */
+              <div className="relative">
+                <button
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  className="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-xl hover:bg-surface-50 transition-colors"
+                >
                   {user.profileImage ? (
                     <img
                       src={user.profileImage}
                       alt={user.name}
-                      className="w-11 h-11 rounded-full object-cover"
+                      className="w-8 h-8 rounded-full object-cover border-2 border-primary-100"
                     />
                   ) : (
-                    <div className="w-11 h-11 rounded-full bg-primary-100 flex items-center justify-center">
-                      <span className="text-primary-700 text-sm font-bold">
-                        {user.name?.charAt(0).toUpperCase()}
+                    <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
+                      <span className="text-xs font-bold text-primary-600">
+                        {getInitials(user.name)}
                       </span>
                     </div>
                   )}
-                  <div>
-                    <p className="text-sm font-semibold text-surface-800">{user.name}</p>
-                    <p className="text-xs text-surface-500 capitalize">{user.role}</p>
+                  <div className="text-left">
+                    <p className="text-sm font-semibold text-surface-800 leading-tight">
+                      {user.name.split(" ")[0]}
+                    </p>
+                    <p className="text-xs text-surface-400 capitalize leading-tight">
+                      {user.role}
+                    </p>
                   </div>
-                </div>
-
-                <button
-                  onClick={() => {
-                    navigate(getDashboardLink());
-                    closeMenu();
-                  }}
-                  className="w-full flex items-center gap-3 text-sm text-surface-700 hover:text-primary-600 px-3 py-3 rounded-xl hover:bg-primary-50 transition-all duration-200"
-                >
-                  <LayoutDashboard size={17} />
-                  Dashboard
                 </button>
 
-                {user.role === "student" && (
-                  <Link
-                    to="/tutors"
-                    onClick={closeMenu}
-                    className="w-full flex items-center gap-3 text-sm text-surface-700 hover:text-primary-600 px-3 py-3 rounded-xl hover:bg-primary-50 transition-all duration-200"
-                  >
-                    <Search size={17} />
-                    Find Tutors
-                  </Link>
+                {/* Dropdown */}
+                {dropdownOpen && (
+                  <>
+                    {/* Backdrop */}
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setDropdownOpen(false)}
+                    />
+
+                    <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-xl border border-surface-100 py-2 z-20 animate-scale-in">
+                      {/* User info */}
+                      <div className="px-4 py-2 border-b border-surface-100 mb-1">
+                        <p className="text-sm font-semibold text-surface-800">
+                          {user.name}
+                        </p>
+                        <p className="text-xs text-surface-400">{user.email}</p>
+                      </div>
+
+                      <Link
+                        to={getDashboardPath()}
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-surface-700 hover:bg-primary-50 hover:text-primary-700 transition-colors"
+                      >
+                        <LayoutDashboard size={16} />
+                        Dashboard
+                      </Link>
+
+                      <Link
+                        to="/profile/edit"
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-surface-700 hover:bg-primary-50 hover:text-primary-700 transition-colors"
+                      >
+                        <User size={16} />
+                        Edit Profile
+                      </Link>
+
+                      {/* Tutor-only menu items */}
+                      {user.role === "tutor" && (
+                        <>
+                          <Link
+                            to="/tutor/subjects"
+                            onClick={() => setDropdownOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-surface-700 hover:bg-primary-50 hover:text-primary-700 transition-colors"
+                          >
+                            <BookOpen size={16} />
+                            My Subjects
+                          </Link>
+
+                          <Link
+                            to="/tutor/availability"
+                            onClick={() => setDropdownOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-surface-700 hover:bg-primary-50 hover:text-primary-700 transition-colors"
+                          >
+                            <Clock size={16} />
+                            Availability
+                          </Link>
+                        </>
+                      )}
+
+                      <div className="border-t border-surface-100 mt-1 pt-1">
+                        <button
+                          onClick={handleLogout}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-danger hover:bg-red-50 transition-colors"
+                        >
+                          <LogOut size={16} />
+                          Logout
+                        </button>
+                      </div>
+                    </div>
+                  </>
                 )}
-
-                <Link
-                  to="/messages"
-                  onClick={closeMenu}
-                  className="w-full flex items-center gap-3 text-sm text-surface-700 hover:text-primary-600 px-3 py-3 rounded-xl hover:bg-primary-50 transition-all duration-200"
-                >
-                  <MessageSquare size={17} />
-                  Messages
-                </Link>
-
-                <button
-                  onClick={() => {
-                    logout();
-                    closeMenu();
-                  }}
-                  className="w-full flex items-center gap-3 text-sm text-danger hover:bg-red-50 px-3 py-3 rounded-xl transition-all duration-200 mt-2"
-                >
-                  <LogOut size={17} />
-                  Log out
-                </button>
-              </>
+              </div>
             ) : (
-              <div className="space-y-2">
+              /* Logged out */
+              <div className="flex items-center gap-3">
                 <Link
                   to="/login"
-                  onClick={closeMenu}
-                  className="block w-full text-center text-sm font-medium text-surface-700 hover:text-primary-600 py-3 rounded-xl border border-surface-200 hover:border-primary-300 hover:bg-primary-50 transition-all duration-200"
+                  className="text-surface-600 hover:text-primary-600 font-medium transition-colors text-sm"
                 >
-                  Sign In
+                  Login
                 </Link>
                 <Link
                   to="/register"
-                  onClick={closeMenu}
-                  className="block w-full text-center text-sm font-medium bg-primary-600 text-white py-3 rounded-xl hover:bg-primary-700 transition-all duration-200 shadow-sm shadow-primary-200"
+                  className="px-4 py-2 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition-colors shadow-sm"
                 >
                   Get Started
                 </Link>
               </div>
+            )}
+          </div>
+
+          {/* Mobile hamburger */}
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="md:hidden p-2 rounded-lg text-surface-600 hover:bg-surface-50"
+          >
+            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Menu */}
+      {mobileOpen && (
+        <div className="md:hidden border-t border-surface-100 bg-white animate-fade-in-up">
+          <div className="px-6 py-4 space-y-1">
+            <Link
+              to="/tutors"
+              onClick={() => setMobileOpen(false)}
+              className="block py-2.5 text-surface-700 font-medium"
+            >
+              Find Tutors
+            </Link>
+
+            {user ? (
+              <>
+                {/* User info */}
+                <div className="flex items-center gap-3 py-3 border-b border-surface-100 mb-2">
+                  {user.profileImage ? (
+                    <img
+                      src={user.profileImage}
+                      alt={user.name}
+                      className="w-10 h-10 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
+                      <span className="text-sm font-bold text-primary-600">
+                        {getInitials(user.name)}
+                      </span>
+                    </div>
+                  )}
+                  <div>
+                    <p className="font-semibold text-surface-800">{user.name}</p>
+                    <p className="text-sm text-surface-400 capitalize">
+                      {user.role}
+                    </p>
+                  </div>
+                </div>
+
+                <Link
+                  to={getDashboardPath()}
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-3 py-2.5 text-surface-700"
+                >
+                  <LayoutDashboard size={18} />
+                  Dashboard
+                </Link>
+
+                <Link
+                  to="/profile/edit"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-3 py-2.5 text-surface-700"
+                >
+                  <User size={18} />
+                  Edit Profile
+                </Link>
+
+                {user.role === "tutor" && (
+                  <>
+                    <Link
+                      to="/tutor/subjects"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-3 py-2.5 text-surface-700"
+                    >
+                      <BookOpen size={18} />
+                      My Subjects
+                    </Link>
+                    <Link
+                      to="/tutor/availability"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-3 py-2.5 text-surface-700"
+                    >
+                      <Clock size={18} />
+                      Availability
+                    </Link>
+                  </>
+                )}
+
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-3 py-2.5 text-danger w-full"
+                >
+                  <LogOut size={18} />
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  onClick={() => setMobileOpen(false)}
+                  className="block py-2.5 text-surface-700 font-medium"
+                >
+                  Login
+                </Link>
+                <Link
+                  to="/register"
+                  onClick={() => setMobileOpen(false)}
+                  className="block py-2.5 text-primary-600 font-semibold"
+                >
+                  Get Started
+                </Link>
+              </>
             )}
           </div>
         </div>

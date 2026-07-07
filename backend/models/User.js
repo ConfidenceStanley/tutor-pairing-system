@@ -1,95 +1,70 @@
 const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 
-const availabilitySchema = new mongoose.Schema({
-  day: {
-    type: String,
-    enum: [
-      "Monday",
-      "Tuesday",
-      "Wednesday",
-      "Thursday",
-      "Friday",
-      "Saturday",
-      "Sunday",
-    ],
+const availabilitySlotSchema = new mongoose.Schema(
+  {
+    day: {
+      type: String,
+      enum: [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+      ],
+      required: true,
+    },
+    startTime: { type: String, required: true },
+    endTime: { type: String, required: true },
   },
-  startTime: {
-    type: String,
-  },
-  endTime: {
-    type: String,
-  },
-});
+  { _id: false }
+);
 
 const userSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      required: [true, "Name is required"],
-      trim: true,
-    },
+    name: { type: String, required: true, trim: true },
     email: {
       type: String,
-      required: [true, "Email is required"],
+      required: true,
       unique: true,
       lowercase: true,
       trim: true,
     },
-    password: {
-      type: String,
-      required: [true, "Password is required"],
-      minlength: [6, "Password must be at least 6 characters"],
-    },
+    password: { type: String, required: true },
     role: {
       type: String,
       enum: ["student", "tutor", "admin"],
-      required: [true, "Role is required"],
+      default: "student",
     },
-    department: {
-      type: String,
-      required: [true, "Department is required"],
-    },
+    department: { type: String, required: true, trim: true },
     level: {
       type: String,
       enum: ["ND1", "ND2", "HND1", "HND2"],
-      required: [true, "Level is required"],
+      required: true,
     },
-    subjects: {
-      type: [String],
-      default: [],
-    },
-    bio: {
-      type: String,
-      default: "",
-    },
-    availability: {
-      type: [availabilitySchema],
-      default: [],
-    },
-    profileImage: {
-      type: String,
-      default: "",
-    },
-    averageRating: {
-      type: Number,
-      default: 0,
-    },
-    totalReviews: {
-      type: Number,
-      default: 0,
-    },
-    sessionRate: {
-      type: Number,
-      default: 0,
-    },
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
+    subjects: { type: [String], default: [], index: true },
+    bio: { type: String, default: "" },
+    availability: { type: [availabilitySlotSchema], default: [] },
+    profileImage: { type: String, default: "" },
+    averageRating: { type: Number, default: 0 },
+    totalReviews: { type: Number, default: 0 },
+    sessionRate: { type: Number, default: 0 },
+    isActive: { type: Boolean, default: true },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
+
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
+});
+
+userSchema.methods.matchPassword = async function (enteredPassword) {
+  return await bcrypt.compare(enteredPassword, this.password);
+};
 
 module.exports = mongoose.model("User", userSchema);
