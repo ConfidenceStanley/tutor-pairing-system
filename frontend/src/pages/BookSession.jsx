@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import Navbar from "../components/Navbar";
 import { getTutor } from "../api/tutorApi";
-import { createSession } from "../api/sessionApi";
+import { initializePayment } from "../api/paymentApi";
 
 const DURATIONS = [
   { value: 30, label: "30 minutes" },
@@ -66,20 +66,19 @@ const BookSession = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Basic validation
-    if (
-      !form.subject ||
-      !form.topic ||
-      !form.scheduledDate ||
-      !form.scheduledTime
-    ) {
+    if (!form.subject || !form.topic || !form.scheduledDate || !form.scheduledTime) {
       toast.error("Please fill all required fields");
+      return;
+    }
+
+    if (!tutor.sessionRate || tutor.sessionRate <= 0) {
+      toast.error("This tutor has not set a session rate. Cannot proceed.");
       return;
     }
 
     setSubmitting(true);
     try {
-      await createSession({
+      const result = await initializePayment({
         tutorId,
         subject: form.subject,
         topic: form.topic,
@@ -90,11 +89,18 @@ const BookSession = () => {
         mode: form.mode,
         location: form.location,
       });
-      toast.success("Session request sent!");
-      navigate("/student/dashboard");
+
+      // Redirect to Paystack checkout
+      if (result.data?.authorizationUrl) {
+        // Store pending reference so callback page knows what to verify
+        localStorage.setItem("pendingPaymentRef", result.data.reference);
+        window.location.href = result.data.authorizationUrl;
+      } else {
+        toast.error("Could not start payment. Please try again.");
+        setSubmitting(false);
+      }
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to book session");
-    } finally {
+      toast.error(err.response?.data?.message || "Failed to initialize payment");
       setSubmitting(false);
     }
   };
@@ -455,6 +461,10 @@ const BookSession = () => {
                           <p className="text-xs text-primary-700 mb-0.5">
                             Estimated Cost
                           </p>
+                          <p className="text-xs text-surface-500 text-center">
+                            You will be redirected to Paystack to complete secure payment. Your session
+                            request is sent to the tutor after payment succeeds.
+                          </p>
                           <p className="text-xl font-bold text-primary-900">
                             ₦{estimatedCost.toLocaleString()}
                           </p>
@@ -474,7 +484,7 @@ const BookSession = () => {
                     className="w-full flex items-center justify-center gap-2 py-3 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     <Send size={16} />
-                    {submitting ? "Sending Request..." : "Send Booking Request"}
+                    {submitting ? "Preparing Payment..." : `Proceed to Payment · ₦${estimatedCost.toLocaleString()}`}
                   </button>
                 </form>
               </div>

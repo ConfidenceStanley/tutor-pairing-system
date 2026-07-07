@@ -9,6 +9,7 @@ import {
   BookOpen,
   GraduationCap,
   Clock,
+  CreditCard,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
@@ -132,6 +133,15 @@ const Navbar = () => {
                         Edit Profile
                       </Link>
 
+                      <Link
+                        to="/payments"
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-surface-700 hover:bg-primary-50 hover:text-primary-700 transition-colors"
+                      >
+                        <CreditCard size={16} />
+                        {user.role === "tutor" ? "Earnings" : "Payments"}
+                      </Link>
+
                       {/* Tutor-only menu items */}
                       {user.role === "tutor" && (
                         <>
@@ -250,6 +260,15 @@ const Navbar = () => {
                 >
                   <User size={18} />
                   Edit Profile
+                </Link>
+
+                <Link
+                  to="/payments"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-3 py-2.5 text-surface-700"
+                >
+                  <CreditCard size={18} />
+                  {user.role === "tutor" ? "Earnings" : "Payments"}
                 </Link>
 
                 {user.role === "tutor" && (

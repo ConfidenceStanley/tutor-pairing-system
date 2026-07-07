@@ -13,6 +13,8 @@ import TutorAvailability from "./pages/TutorAvailability";
 import TutorPublicProfile from "./pages/TutorPublicProfile";
 import SearchTutors from "./pages/SearchTutors";
 import BookSession from "./pages/BookSession";
+import PaymentCallback from "./pages/PaymentCallback";
+import PaymentHistory from "./pages/PaymentHistory";
 
 const App = () => {
   return (
@@ -89,6 +91,25 @@ const App = () => {
                 <RoleRoute allowedRoles={["student"]}>
                   <BookSession />
                 </RoleRoute>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/payment/callback"
+            element={
+              <ProtectedRoute>
+                <PaymentCallback />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Payment history */}
+          <Route
+            path="/payments"
+            element={
+              <ProtectedRoute>
+                <PaymentHistory />
               </ProtectedRoute>
             }
           />

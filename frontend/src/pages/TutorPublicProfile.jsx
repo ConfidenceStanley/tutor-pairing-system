@@ -1,51 +1,21 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   Star,
   MapPin,
-  Clock,
-  BookOpen,
-  Calendar,
-  Award,
-  ArrowLeft,
-  MessageSquare,
   GraduationCap,
-  Users,
+  BookOpen,
+  Clock,
+  Calendar,
+  MessageSquare,
+  ArrowLeft,
+  Award,
 } from "lucide-react";
-import toast from "react-hot-toast";
-import { getTutorProfile } from "../api/profileApi";
+import Navbar from "../components/Navbar";
+import StarRating from "../components/StarRating";
+import { getTutor } from "../api/tutorApi";
+import { getTutorReviews } from "../api/reviewApi";
 import { useAuth } from "../context/AuthContext";
-import MainLayout from "../layouts/MainLayout";
-
-// Reusable star display
-const StarDisplay = ({ rating, size = 16 }) => {
-  return (
-    <div className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <Star
-          key={star}
-          size={size}
-          className={
-            star <= Math.round(rating)
-              ? "fill-amber-400 text-amber-400"
-              : "text-surface-300"
-          }
-        />
-      ))}
-    </div>
-  );
-};
-
-// Day order for sorting
-const DAY_ORDER = [
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-  "Sunday",
-];
 
 const TutorPublicProfile = () => {
   const { id } = useParams();
@@ -53,22 +23,29 @@ const TutorPublicProfile = () => {
   const { user } = useAuth();
 
   const [tutor, setTutor] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchTutor = async () => {
+    const load = async () => {
+      setLoading(true);
       try {
-        const response = await getTutorProfile(id);
-        setTutor(response.data);
+        const [tutorRes, reviewsRes] = await Promise.all([
+          getTutor(id),
+          getTutorReviews(id),
+        ]);
+        setTutor(tutorRes.data);
+        setReviews(reviewsRes.data);
+        setStats(reviewsRes.stats);
       } catch (err) {
-        setError(err.response?.data?.message || "Failed to load tutor profile");
+        setError(err.response?.data?.message || "Tutor not found");
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
-
-    fetchTutor();
+    load();
   }, [id]);
 
   const getInitials = (name) => {
@@ -81,335 +58,323 @@ const TutorPublicProfile = () => {
       .slice(0, 2);
   };
 
-  // Sort availability by day order
-  const sortedAvailability = tutor?.availability
-    ? [...tutor.availability].sort(
-        (a, b) => DAY_ORDER.indexOf(a.day) - DAY_ORDER.indexOf(b.day)
-      )
-    : [];
+  const formatDate = (dateStr) => {
+    return new Date(dateStr).toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
 
-  // Group availability by day
-  const groupedAvailability = {};
-  sortedAvailability.forEach((slot) => {
-    if (!groupedAvailability[slot.day]) groupedAvailability[slot.day] = [];
-    groupedAvailability[slot.day].push(slot);
-  });
-
-  if (isLoading) {
+  if (loading) {
     return (
-      <MainLayout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-12 h-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
-            <p className="text-surface-500">Loading tutor profile...</p>
-          </div>
+      <>
+        <Navbar />
+        <div className="min-h-screen bg-surface-50 flex items-center justify-center">
+          <p className="text-surface-500">Loading profile...</p>
         </div>
-      </MainLayout>
+      </>
     );
   }
 
-  if (error) {
+  if (error || !tutor) {
     return (
-      <MainLayout>
-        <div className="max-w-2xl mx-auto text-center py-20">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Users size={32} className="text-danger" />
+      <>
+        <Navbar />
+        <div className="min-h-screen bg-surface-50 flex items-center justify-center p-4">
+          <div className="text-center max-w-md">
+            <h2 className="text-2xl font-bold text-surface-900 mb-2">
+              Tutor not found
+            </h2>
+            <p className="text-surface-500 mb-6">{error}</p>
+            <Link
+              to="/tutors"
+              className="px-6 py-2.5 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700"
+            >
+              Browse Tutors
+            </Link>
           </div>
-          <h2 className="text-2xl font-bold text-surface-800 mb-2">
-            Tutor Not Found
-          </h2>
-          <p className="text-surface-500 mb-6">{error}</p>
-          <button
-            onClick={() => navigate("/tutors")}
-            className="px-6 py-3 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition-colors"
-          >
-            Browse Tutors
-          </button>
         </div>
-      </MainLayout>
+      </>
     );
   }
+
+  // Reviews stats
+  const totalReviews = stats?.totalReviews || 0;
+  const averageRating = stats?.averageRating || 0;
+  const breakdown = stats?.breakdown || { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
 
   return (
-    <MainLayout>
-      <div className="max-w-4xl mx-auto animate-fade-in-up">
-        {/* Back Button */}
-        <div className="flex items-center gap-4 mb-8">
+    <>
+      <Navbar />
+      <div className="min-h-screen bg-surface-50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Back */}
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-surface-500 hover:text-primary-600 transition-colors"
+            className="flex items-center gap-2 text-surface-600 hover:text-primary-600 mb-6 text-sm font-medium transition-colors"
           >
-            <ArrowLeft size={20} />
-            <span>Back</span>
+            <ArrowLeft size={16} />
+            Back
           </button>
-        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Profile Card */}
-          <div className="lg:col-span-1 space-y-5">
-            {/* Main Profile Card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-surface-100 p-6 text-center">
-              {/* Avatar */}
-              <div className="flex justify-center mb-4">
-                {tutor.profileImage ? (
-                  <img
-                    src={tutor.profileImage}
-                    alt={tutor.name}
-                    className="w-28 h-28 rounded-full object-cover border-4 border-primary-100 shadow-md"
-                  />
-                ) : (
-                  <div className="w-28 h-28 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center border-4 border-primary-100 shadow-md">
-                    <span className="text-3xl font-bold text-white">
-                      {getInitials(tutor.name)}
-                    </span>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* LEFT: Profile card */}
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-2xl shadow-sm border border-surface-100 p-6 sticky top-8">
+                <div className="text-center mb-5">
+                  {tutor.profileImage ? (
+                    <img
+                      src={tutor.profileImage}
+                      alt={tutor.name}
+                      className="w-28 h-28 rounded-full object-cover mx-auto ring-4 ring-primary-100 mb-4"
+                    />
+                  ) : (
+                    <div className="w-28 h-28 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center mx-auto ring-4 ring-primary-100 mb-4">
+                      <span className="text-white text-2xl font-bold">
+                        {getInitials(tutor.name)}
+                      </span>
+                    </div>
+                  )}
+                  <h1 className="text-xl font-bold text-surface-900">
+                    {tutor.name}
+                  </h1>
+
+                  <div className="flex items-center justify-center gap-1 mt-1 text-sm text-surface-500">
+                    <MapPin size={12} />
+                    <span>{tutor.department}</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-1 mt-0.5 text-sm text-surface-500">
+                    <GraduationCap size={12} />
+                    <span>{tutor.level}</span>
+                  </div>
+
+                  {averageRating > 0 && (
+                    <div className="flex items-center justify-center gap-2 mt-3">
+                      <StarRating value={averageRating} size={16} />
+                      <span className="text-sm font-semibold text-surface-700">
+                        {averageRating.toFixed(1)}
+                      </span>
+                      <span className="text-sm text-surface-400">
+                        ({totalReviews})
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Rate */}
+                {tutor.sessionRate > 0 && (
+                  <div className="pt-4 border-t border-surface-100 mb-4 text-center">
+                    <p className="text-xs text-surface-400 mb-1">
+                      Session Rate
+                    </p>
+                    <p className="text-2xl font-bold text-surface-900">
+                      ₦{tutor.sessionRate.toLocaleString()}
+                      <span className="text-sm text-surface-400 font-normal">
+                        /hour
+                      </span>
+                    </p>
                   </div>
                 )}
-              </div>
 
-              {/* Name and Role */}
-              <h1 className="text-xl font-bold text-surface-900">{tutor.name}</h1>
-              <div className="flex items-center justify-center gap-1.5 mt-1 text-surface-500 text-sm">
-                <GraduationCap size={14} />
-                <span>
-                  {tutor.department} • {tutor.level}
-                </span>
-              </div>
-
-              {/* Rating */}
-              <div className="flex items-center justify-center gap-2 mt-3">
-                <StarDisplay rating={tutor.averageRating} size={18} />
-                <span className="font-semibold text-surface-800">
-                  {tutor.averageRating > 0
-                    ? tutor.averageRating.toFixed(1)
-                    : "New"}
-                </span>
-                <span className="text-surface-400 text-sm">
-                  ({tutor.totalReviews} review
-                  {tutor.totalReviews !== 1 ? "s" : ""})
-                </span>
-              </div>
-
-              {/* Session Rate */}
-              <div className="mt-4 p-3 bg-primary-50 rounded-xl">
-                <p className="text-xs text-primary-600 font-medium uppercase tracking-wide">
-                  Session Rate
-                </p>
-                <p className="text-2xl font-bold text-primary-700 mt-0.5">
-                  {tutor.sessionRate > 0
-                    ? `₦${tutor.sessionRate.toLocaleString()}`
-                    : "Free"}
-                </p>
-                <p className="text-xs text-primary-500 mt-0.5">per session</p>
-              </div>
-
-              {/* Book Session Button */}
-              {user ? (
-                user.role === "student" ? (
+                {/* Book button */}
+                {user?.role === "student" && (
                   <Link
                     to={`/book-session/${tutor._id}`}
-                    className="mt-4 block w-full py-3 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 transition-all duration-200 shadow-sm text-center"
+                    className="w-full flex items-center justify-center gap-2 py-3 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 transition-colors"
                   >
-                    Book a Session
+                    <Calendar size={16} />
+                    Book Session
                   </Link>
-                ) : (
-                  <div className="mt-4 p-3 bg-surface-50 rounded-xl text-center">
-                    <p className="text-surface-400 text-sm">
-                      Only students can book sessions
-                    </p>
-                  </div>
-                )
-              ) : (
-                <Link
-                  to="/login"
-                  className="mt-4 block w-full py-3 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 transition-all duration-200 shadow-sm text-center"
-                >
-                  Login to Book
-                </Link>
-              )}
-            </div>
-
-            {/* Stats Card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-surface-100 p-5">
-              <h2 className="font-semibold text-surface-800 mb-4">
-                Quick Stats
-              </h2>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-amber-100 rounded-lg flex items-center justify-center">
-                    <Award size={18} className="text-amber-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-surface-400">Rating</p>
-                    <p className="text-sm font-semibold text-surface-800">
-                      {tutor.averageRating > 0
-                        ? `${tutor.averageRating.toFixed(1)} / 5.0`
-                        : "Not yet rated"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <MessageSquare size={18} className="text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-surface-400">Total Reviews</p>
-                    <p className="text-sm font-semibold text-surface-800">
-                      {tutor.totalReviews} review
-                      {tutor.totalReviews !== 1 ? "s" : ""}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <BookOpen size={18} className="text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-surface-400">Subjects</p>
-                    <p className="text-sm font-semibold text-surface-800">
-                      {tutor.subjects.length} subject
-                      {tutor.subjects.length !== 1 ? "s" : ""}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column - Details */}
-          <div className="lg:col-span-2 space-y-5">
-            {/* Bio */}
-            {tutor.bio && (
-              <div className="bg-white rounded-2xl shadow-sm border border-surface-100 p-6">
-                <h2 className="text-lg font-semibold text-surface-800 mb-3">
-                  About
-                </h2>
-                <p className="text-surface-600 leading-relaxed">{tutor.bio}</p>
-              </div>
-            )}
-
-            {/* Subjects */}
-            <div className="bg-white rounded-2xl shadow-sm border border-surface-100 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <BookOpen size={18} className="text-primary-600" />
-                <h2 className="text-lg font-semibold text-surface-800">
-                  Subjects I Teach
-                </h2>
-              </div>
-
-              {tutor.subjects.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {tutor.subjects.map((subject, index) => (
-                    <span
-                      key={index}
-                      className="px-3 py-1.5 bg-primary-100 text-primary-700 rounded-full text-sm font-medium"
-                    >
-                      {subject}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-surface-400 text-sm">
-                  No subjects listed yet.
-                </p>
-              )}
-            </div>
-
-            {/* Availability */}
-            <div className="bg-white rounded-2xl shadow-sm border border-surface-100 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Calendar size={18} className="text-primary-600" />
-                <h2 className="text-lg font-semibold text-surface-800">
-                  Availability
-                </h2>
-              </div>
-
-              {Object.keys(groupedAvailability).length > 0 ? (
-                <div className="space-y-2">
-                  {DAY_ORDER.filter((d) => groupedAvailability[d]).map((day) => (
-                    <div
-                      key={day}
-                      className="flex items-start gap-3 p-3 bg-surface-50 rounded-xl"
-                    >
-                      <div className="w-24 flex-shrink-0">
-                        <span className="text-sm font-semibold text-surface-700">
-                          {day}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {groupedAvailability[day].map((slot, i) => (
-                          <span
-                            key={i}
-                            className="flex items-center gap-1.5 text-xs text-primary-700 bg-primary-100 px-2.5 py-1 rounded-full font-medium"
-                          >
-                            <Clock size={11} />
-                            {slot.startTime} – {slot.endTime}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-4 bg-surface-50 rounded-xl text-center">
-                  <Clock size={24} className="text-surface-300 mx-auto mb-2" />
-                  <p className="text-surface-400 text-sm">
-                    No availability set. Contact the tutor directly.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Reviews Placeholder - will be filled in Phase 6 */}
-            <div className="bg-white rounded-2xl shadow-sm border border-surface-100 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Star size={18} className="text-primary-600" />
-                  <h2 className="text-lg font-semibold text-surface-800">
-                    Reviews
-                  </h2>
-                </div>
-                {tutor.totalReviews > 0 && (
-                  <span className="text-sm text-surface-500">
-                    {tutor.totalReviews} review
-                    {tutor.totalReviews !== 1 ? "s" : ""}
-                  </span>
+                )}
+                {!user && (
+                  <Link
+                    to="/login"
+                    className="w-full flex items-center justify-center gap-2 py-3 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 transition-colors"
+                  >
+                    <Calendar size={16} />
+                    Login to Book
+                  </Link>
                 )}
               </div>
+            </div>
 
-              {tutor.totalReviews === 0 ? (
-                <div className="text-center py-8">
-                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <Star size={24} className="text-amber-400" />
-                  </div>
-                  <p className="text-surface-500 font-medium">No reviews yet</p>
-                  <p className="text-surface-400 text-sm mt-1">
-                    Be the first to book a session and leave a review!
-                  </p>
-                </div>
-              ) : (
-                <div className="text-center py-6">
-                  <div className="flex justify-center mb-2">
-                    <StarDisplay rating={tutor.averageRating} size={24} />
-                  </div>
-                  <p className="text-3xl font-bold text-surface-900">
-                    {tutor.averageRating.toFixed(1)}
-                  </p>
-                  <p className="text-surface-400 text-sm">
-                    Based on {tutor.totalReviews} review
-                    {tutor.totalReviews !== 1 ? "s" : ""}
-                  </p>
-                  <p className="text-surface-400 text-sm mt-3 italic">
-                    Detailed reviews will appear here in the next update.
+            {/* RIGHT: Details */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Bio */}
+              {tutor.bio && (
+                <div className="bg-white rounded-2xl shadow-sm border border-surface-100 p-6">
+                  <h3 className="font-bold text-surface-900 mb-3 flex items-center gap-2">
+                    <Award size={18} className="text-primary-500" />
+                    About
+                  </h3>
+                  <p className="text-surface-700 leading-relaxed whitespace-pre-line">
+                    {tutor.bio}
                   </p>
                 </div>
               )}
+
+              {/* Subjects */}
+              {tutor.subjects?.length > 0 && (
+                <div className="bg-white rounded-2xl shadow-sm border border-surface-100 p-6">
+                  <h3 className="font-bold text-surface-900 mb-3 flex items-center gap-2">
+                    <BookOpen size={18} className="text-primary-500" />
+                    Subjects Taught
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {tutor.subjects.map((s, i) => (
+                      <span
+                        key={i}
+                        className="inline-flex items-center gap-1.5 bg-primary-50 text-primary-700 text-sm font-medium px-3 py-1.5 rounded-full"
+                      >
+                        <BookOpen size={12} />
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Availability */}
+              {tutor.availability?.length > 0 && (
+                <div className="bg-white rounded-2xl shadow-sm border border-surface-100 p-6">
+                  <h3 className="font-bold text-surface-900 mb-3 flex items-center gap-2">
+                    <Clock size={18} className="text-primary-500" />
+                    Availability
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {tutor.availability.map((slot, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between p-3 bg-surface-50 rounded-xl"
+                      >
+                        <span className="font-medium text-surface-900 text-sm">
+                          {slot.day}
+                        </span>
+                        <span className="text-sm text-surface-600">
+                          {slot.startTime} – {slot.endTime}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Reviews */}
+              <div className="bg-white rounded-2xl shadow-sm border border-surface-100 p-6">
+                <h3 className="font-bold text-surface-900 mb-4 flex items-center gap-2">
+                  <Star size={18} className="text-primary-500" />
+                  Reviews
+                  {totalReviews > 0 && (
+                    <span className="text-sm font-normal text-surface-400">
+                      ({totalReviews})
+                    </span>
+                  )}
+                </h3>
+
+                {totalReviews === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 rounded-full bg-surface-100 flex items-center justify-center mx-auto mb-3">
+                      <Star size={28} className="text-surface-300" />
+                    </div>
+                    <p className="text-surface-500 text-sm">
+                      No reviews yet. Be the first to review!
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Rating summary */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6 pb-6 border-b border-surface-100">
+                      {/* Big rating */}
+                      <div className="text-center sm:text-left">
+                        <div className="text-5xl font-bold text-surface-900 mb-1">
+                          {averageRating.toFixed(1)}
+                        </div>
+                        <StarRating value={averageRating} size={18} />
+                        <p className="text-sm text-surface-500 mt-1">
+                          Based on {totalReviews}{" "}
+                          {totalReviews === 1 ? "review" : "reviews"}
+                        </p>
+                      </div>
+
+                      {/* Breakdown bars */}
+                      <div className="space-y-2">
+                        {[5, 4, 3, 2, 1].map((star) => {
+                          const count = breakdown[star] || 0;
+                          const percent =
+                            totalReviews > 0 ? (count / totalReviews) * 100 : 0;
+                          return (
+                            <div
+                              key={star}
+                              className="flex items-center gap-2 text-sm"
+                            >
+                              <span className="text-surface-600 w-6">
+                                {star}★
+                              </span>
+                              <div className="flex-1 h-2 bg-surface-100 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-yellow-400 rounded-full transition-all"
+                                  style={{ width: `${percent}%` }}
+                                />
+                              </div>
+                              <span className="text-surface-500 w-8 text-right">
+                                {count}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Individual reviews */}
+                    <div className="space-y-4">
+                      {reviews.map((review) => (
+                        <div
+                          key={review._id}
+                          className="p-4 bg-surface-50 rounded-xl"
+                        >
+                          <div className="flex items-start gap-3">
+                            {review.student?.profileImage ? (
+                              <img
+                                src={review.student.profileImage}
+                                alt={review.student.name}
+                                className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center flex-shrink-0">
+                                <span className="text-white text-xs font-bold">
+                                  {getInitials(review.student?.name)}
+                                </span>
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2 mb-1">
+                                <p className="font-semibold text-surface-900 text-sm truncate">
+                                  {review.student?.name || "Anonymous"}
+                                </p>
+                                <span className="text-xs text-surface-400 flex-shrink-0">
+                                  {formatDate(review.createdAt)}
+                                </span>
+                              </div>
+                              <StarRating value={review.rating} size={12} />
+                              {review.comment && (
+                                <p className="mt-2 text-sm text-surface-700 leading-relaxed">
+                                  {review.comment}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </MainLayout>
+    </>
   );
 };
 

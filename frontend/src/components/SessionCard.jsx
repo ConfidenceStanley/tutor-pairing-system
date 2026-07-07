@@ -12,6 +12,7 @@ import {
   X,
   CheckCircle,
   AlertCircle,
+  Star,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import {
@@ -20,6 +21,7 @@ import {
   completeSession,
   cancelSession,
 } from "../api/sessionApi";
+import ReviewModal from "./ReviewModal";
 
 const STATUS_STYLES = {
   pending: {
@@ -58,13 +60,12 @@ const SessionCard = ({ session, viewAs, onUpdate }) => {
   const [loading, setLoading] = useState(false);
   const [showDeclineModal, setShowDeclineModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
   const [reason, setReason] = useState("");
 
-  // Other party (opposite of who is viewing)
   const otherUser = viewAs === "student" ? session.tutor : session.student;
   const statusStyle = STATUS_STYLES[session.status];
 
-  // Format date
   const formatDate = (dateStr) => {
     const d = new Date(dateStr);
     return d.toLocaleDateString("en-US", {
@@ -75,7 +76,6 @@ const SessionCard = ({ session, viewAs, onUpdate }) => {
     });
   };
 
-  // Get initials
   const getInitials = (name) => {
     if (!name) return "?";
     return name
@@ -146,7 +146,7 @@ const SessionCard = ({ session, viewAs, onUpdate }) => {
   return (
     <>
       <div className="bg-white rounded-2xl shadow-sm border border-surface-100 p-5 hover:shadow-md transition-shadow">
-        {/* Header: Other user + status */}
+        {/* Header */}
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="flex items-center gap-3 min-w-0">
             {otherUser?.profileImage ? (
@@ -202,7 +202,7 @@ const SessionCard = ({ session, viewAs, onUpdate }) => {
           </div>
         </div>
 
-        {/* Session Details Grid */}
+        {/* Details Grid */}
         <div className="grid grid-cols-2 gap-3 text-sm mb-4">
           <div className="flex items-center gap-2">
             <Calendar size={14} className="text-surface-400 flex-shrink-0" />
@@ -234,7 +234,7 @@ const SessionCard = ({ session, viewAs, onUpdate }) => {
           )}
         </div>
 
-        {/* Message from student */}
+        {/* Message */}
         {session.message && (
           <div className="mb-4 p-3 bg-surface-50 rounded-xl">
             <p className="text-xs text-surface-400 mb-1">Message</p>
@@ -262,7 +262,6 @@ const SessionCard = ({ session, viewAs, onUpdate }) => {
 
         {/* Actions */}
         <div className="flex flex-wrap gap-2 pt-2 border-t border-surface-100">
-          {/* Tutor actions on pending */}
           {viewAs === "tutor" && session.status === "pending" && (
             <>
               <button
@@ -284,7 +283,6 @@ const SessionCard = ({ session, viewAs, onUpdate }) => {
             </>
           )}
 
-          {/* Tutor actions on accepted */}
           {viewAs === "tutor" && session.status === "accepted" && (
             <button
               onClick={handleComplete}
@@ -296,7 +294,6 @@ const SessionCard = ({ session, viewAs, onUpdate }) => {
             </button>
           )}
 
-          {/* Student actions on pending or accepted */}
           {viewAs === "student" &&
             ["pending", "accepted"].includes(session.status) && (
               <button
@@ -309,7 +306,30 @@ const SessionCard = ({ session, viewAs, onUpdate }) => {
               </button>
             )}
 
-          {/* View profile - always available */}
+          {/* NEW: Student leaves review on completed unreviewed */}
+          {viewAs === "student" &&
+            session.status === "completed" &&
+            !session.isReviewed && (
+              <button
+                onClick={() => setShowReviewModal(true)}
+                disabled={loading}
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-yellow-500 text-white rounded-xl text-sm font-medium hover:bg-yellow-600 disabled:opacity-50 transition-colors"
+              >
+                <Star size={14} />
+                Leave Review
+              </button>
+            )}
+
+          {/* NEW: Reviewed badge */}
+          {viewAs === "student" &&
+            session.status === "completed" &&
+            session.isReviewed && (
+              <div className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-green-50 text-green-700 rounded-xl text-sm font-medium">
+                <CheckCircle size={14} />
+                Reviewed
+              </div>
+            )}
+
           {viewAs === "student" && (
             <Link
               to={`/tutor/profile/${session.tutor?._id}`}
@@ -335,7 +355,6 @@ const SessionCard = ({ session, viewAs, onUpdate }) => {
             setReason("");
           }}
           confirmLabel="Decline Session"
-          confirmColor="red"
           loading={loading}
         />
       )}
@@ -353,15 +372,22 @@ const SessionCard = ({ session, viewAs, onUpdate }) => {
             setReason("");
           }}
           confirmLabel="Cancel Session"
-          confirmColor="red"
           loading={loading}
+        />
+      )}
+
+      {/* Review Modal */}
+      {showReviewModal && (
+        <ReviewModal
+          session={session}
+          onClose={() => setShowReviewModal(false)}
+          onSuccess={onUpdate}
         />
       )}
     </>
   );
 };
 
-// Small reusable modal
 const ReasonModal = ({
   title,
   description,
