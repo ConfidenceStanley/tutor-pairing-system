@@ -9,6 +9,7 @@ const notFound = require("./middleware/notFound");
 const authRoutes = require("./routes/authRoutes");
 const profileRoutes = require("./routes/profileRoutes");
 const tutorRoutes = require("./routes/tutorRoutes");
+const sessionRoutes = require("./routes/sessionRoutes");
 
 connectDB();
 
@@ -29,6 +30,7 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/tutors", tutorRoutes);
+app.use("/api/sessions", sessionRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

@@ -12,6 +12,7 @@ import TutorSubjects from "./pages/TutorSubjects";
 import TutorAvailability from "./pages/TutorAvailability";
 import TutorPublicProfile from "./pages/TutorPublicProfile";
 import SearchTutors from "./pages/SearchTutors";
+import BookSession from "./pages/BookSession";
 
 const App = () => {
   return (
@@ -76,6 +77,17 @@ const App = () => {
               <ProtectedRoute>
                 <RoleRoute allowedRoles={["tutor"]}>
                   <TutorAvailability />
+                </RoleRoute>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/book-session/:tutorId"
+            element={
+              <ProtectedRoute>
+                <RoleRoute allowedRoles={["student"]}>
+                  <BookSession />
                 </RoleRoute>
               </ProtectedRoute>
             }
