@@ -15,6 +15,7 @@ const sessionRoutes = require("./routes/sessionRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const messageRoutes = require("./routes/messageRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 const socketHandler = require("./socket/socketHandler");
 
 connectDB();
@@ -51,6 +52,7 @@ app.use("/api/sessions", sessionRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

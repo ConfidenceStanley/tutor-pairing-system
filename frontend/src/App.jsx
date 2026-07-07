@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleRoute from "./components/RoleRoute";
@@ -16,11 +17,41 @@ import BookSession from "./pages/BookSession";
 import PaymentCallback from "./pages/PaymentCallback";
 import PaymentHistory from "./pages/PaymentHistory";
 import Messages from "./pages/Messages";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminSessions from "./pages/admin/AdminSessions";
+import AdminPayments from "./pages/admin/AdminPayments";
 
 const App = () => {
   return (
     <AuthProvider>
       <Router>
+        {/* Toaster must be inside Router so it works on all pages */}
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              borderRadius: "12px",
+              fontSize: "14px",
+              fontWeight: "500",
+            },
+            success: {
+              style: {
+                background: "#ecfdf5",
+                color: "#065f46",
+                border: "1px solid #a7f3d0",
+              },
+            },
+            error: {
+              style: {
+                background: "#fef2f2",
+                color: "#991b1b",
+                border: "1px solid #fecaca",
+              },
+            },
+          }}
+        />
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Home />} />
@@ -112,6 +143,58 @@ const App = () => {
               <ProtectedRoute>
                 <RoleRoute allowedRoles={["tutor"]}>
                   <TutorAvailability />
+                </RoleRoute>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Protected - Admin only */}
+          <Route
+            path="/admin/dashboard"
+            element={
+              <ProtectedRoute>
+                <RoleRoute allowedRoles={["admin"]}>
+                  <AdminDashboard />
+                </RoleRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <ProtectedRoute>
+                <RoleRoute allowedRoles={["admin"]}>
+                  <AdminUsers />
+                </RoleRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/users/:id"
+            element={
+              <ProtectedRoute>
+                <RoleRoute allowedRoles={["admin"]}>
+                  <AdminUsers />
+                </RoleRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/sessions"
+            element={
+              <ProtectedRoute>
+                <RoleRoute allowedRoles={["admin"]}>
+                  <AdminSessions />
+                </RoleRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/payments"
+            element={
+              <ProtectedRoute>
+                <RoleRoute allowedRoles={["admin"]}>
+                  <AdminPayments />
                 </RoleRoute>
               </ProtectedRoute>
             }

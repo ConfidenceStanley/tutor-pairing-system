@@ -14,21 +14,22 @@ const protect = asyncHandler(async (req, res, next) => {
 
   if (!token) {
     res.status(401);
-    throw new Error("Not authorized, no token provided");
+    throw new Error("Not authorized, no token");
   }
 
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  // Catch malformed / expired / invalid tokens gracefully
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
+  } catch (err) {
+    res.status(401);
+    throw new Error("Not authorized, token invalid");
+  }
 
   const user = await User.findById(decoded.id).select("-password");
-
   if (!user) {
     res.status(401);
-    throw new Error("Not authorized, user no longer exists");
-  }
-
-  if (!user.isActive) {
-    res.status(403);
-    throw new Error("Your account has been deactivated");
+    throw new Error("Not authorized, user not found");
   }
 
   req.user = user;

@@ -23,13 +23,19 @@ const Login = () => {
     setLoading(true);
     try {
       const response = await loginUser(data);
-      login(response.data, response.data.token);
-      toast.success(`Welcome back, ${response.data.name.split(" ")[0]}!`);
-      if (response.data.role === "student") navigate("/student/dashboard");
-      if (response.data.role === "tutor") navigate("/tutor/dashboard");
-      if (response.data.role === "admin") navigate("/admin/dashboard");
+
+      // token lives inside response.data alongside user fields
+      const { token, ...userData } = response.data;
+
+      login(userData, token);
+      toast.success(`Welcome back, ${userData.name.split(" ")[0]}!`);
+
+      if (userData.role === "student") navigate("/student/dashboard");
+      else if (userData.role === "tutor") navigate("/tutor/dashboard");
+      else if (userData.role === "admin") navigate("/admin/dashboard");
+      else navigate("/");
     } catch (error) {
-      toast.error(error.response?.data?.message || "Login failed");
+      toast.error(error.response?.data?.message || "Invalid email or password");
     } finally {
       setLoading(false);
     }
