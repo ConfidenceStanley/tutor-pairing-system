@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -10,14 +10,57 @@ import {
   GraduationCap,
   Clock,
   CreditCard,
+  MessageSquare,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { connectSocket, disconnectSocket, getSocket } from "../utils/socket";
+import { getConversations } from "../api/messageApi";
 
 const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // ── Connect socket + load unread count when user logs in ──────────────
+  useEffect(() => {
+    if (!user) {
+      setUnreadCount(0);
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    // Connect socket
+    const socket = connectSocket(token);
+
+    // Listen for incoming messages to update badge
+    socket.on("messageReceived", () => {
+      loadUnreadCount();
+    });
+
+    // Initial unread count
+    loadUnreadCount();
+
+    return () => {
+      socket.off("messageReceived");
+    };
+  }, [user]);
+
+  const loadUnreadCount = async () => {
+    try {
+      const res = await getConversations();
+      const total = (res.data || []).reduce(
+        (sum, c) => sum + (c.unreadCount || 0),
+        0
+      );
+      setUnreadCount(total);
+    } catch {
+      // Silently fail — badge is non-critical
+    }
+  };
 
   const getDashboardPath = () => {
     if (!user) return "/login";
@@ -40,14 +83,15 @@ const Navbar = () => {
   const handleLogout = () => {
     setDropdownOpen(false);
     setMobileOpen(false);
+    disconnectSocket();
     logout();
+    navigate("/");
   };
 
   return (
     <nav className="bg-white border-b border-surface-100 sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
           <Link
             to="/"
             className="flex items-center gap-2 text-primary-600 font-bold text-xl"
@@ -58,7 +102,6 @@ const Navbar = () => {
             TutorPair
           </Link>
 
-          {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-6">
             <Link
               to="/tutors"
@@ -68,7 +111,6 @@ const Navbar = () => {
             </Link>
 
             {user ? (
-              /* Logged in - User Menu */
               <div className="relative">
                 <button
                   onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -95,19 +137,20 @@ const Navbar = () => {
                       {user.role}
                     </p>
                   </div>
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-primary-600 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
                 </button>
 
-                {/* Dropdown */}
                 {dropdownOpen && (
                   <>
-                    {/* Backdrop */}
                     <div
                       className="fixed inset-0 z-10"
                       onClick={() => setDropdownOpen(false)}
                     />
-
                     <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-xl border border-surface-100 py-2 z-20 animate-scale-in">
-                      {/* User info */}
                       <div className="px-4 py-2 border-b border-surface-100 mb-1">
                         <p className="text-sm font-semibold text-surface-800">
                           {user.name}
@@ -123,7 +166,6 @@ const Navbar = () => {
                         <LayoutDashboard size={16} />
                         Dashboard
                       </Link>
-
                       <Link
                         to="/profile/edit"
                         onClick={() => setDropdownOpen(false)}
@@ -132,7 +174,19 @@ const Navbar = () => {
                         <User size={16} />
                         Edit Profile
                       </Link>
-
+                      <Link
+                        to="/messages"
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-surface-700 hover:bg-primary-50 hover:text-primary-700 transition-colors"
+                      >
+                        <MessageSquare size={16} />
+                        Messages
+                        {unreadCount > 0 && (
+                          <span className="ml-auto bg-primary-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
+                            {unreadCount > 9 ? "9+" : unreadCount}
+                          </span>
+                        )}
+                      </Link>
                       <Link
                         to="/payments"
                         onClick={() => setDropdownOpen(false)}
@@ -142,7 +196,6 @@ const Navbar = () => {
                         {user.role === "tutor" ? "Earnings" : "Payments"}
                       </Link>
 
-                      {/* Tutor-only menu items */}
                       {user.role === "tutor" && (
                         <>
                           <Link
@@ -153,7 +206,6 @@ const Navbar = () => {
                             <BookOpen size={16} />
                             My Subjects
                           </Link>
-
                           <Link
                             to="/tutor/availability"
                             onClick={() => setDropdownOpen(false)}
@@ -179,7 +231,6 @@ const Navbar = () => {
                 )}
               </div>
             ) : (
-              /* Logged out */
               <div className="flex items-center gap-3">
                 <Link
                   to="/login"
@@ -197,7 +248,6 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Mobile hamburger */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             className="md:hidden p-2 rounded-lg text-surface-600 hover:bg-surface-50"
@@ -207,7 +257,6 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile Menu */}
       {mobileOpen && (
         <div className="md:hidden border-t border-surface-100 bg-white animate-fade-in-up">
           <div className="px-6 py-4 space-y-1">
@@ -221,7 +270,6 @@ const Navbar = () => {
 
             {user ? (
               <>
-                {/* User info */}
                 <div className="flex items-center gap-3 py-3 border-b border-surface-100 mb-2">
                   {user.profileImage ? (
                     <img
@@ -238,9 +286,7 @@ const Navbar = () => {
                   )}
                   <div>
                     <p className="font-semibold text-surface-800">{user.name}</p>
-                    <p className="text-sm text-surface-400 capitalize">
-                      {user.role}
-                    </p>
+                    <p className="text-sm text-surface-400 capitalize">{user.role}</p>
                   </div>
                 </div>
 
@@ -249,25 +295,34 @@ const Navbar = () => {
                   onClick={() => setMobileOpen(false)}
                   className="flex items-center gap-3 py-2.5 text-surface-700"
                 >
-                  <LayoutDashboard size={18} />
-                  Dashboard
+                  <LayoutDashboard size={18} /> Dashboard
                 </Link>
-
                 <Link
                   to="/profile/edit"
                   onClick={() => setMobileOpen(false)}
                   className="flex items-center gap-3 py-2.5 text-surface-700"
                 >
-                  <User size={18} />
-                  Edit Profile
+                  <User size={18} /> Edit Profile
                 </Link>
-
+                <Link
+                  to="/messages"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-3 py-2.5 text-surface-700"
+                >
+                  <MessageSquare size={18} />
+                  Messages
+                  {unreadCount > 0 && (
+                    <span className="ml-1 bg-primary-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </Link>
                 <Link
                   to="/payments"
                   onClick={() => setMobileOpen(false)}
                   className="flex items-center gap-3 py-2.5 text-surface-700"
                 >
-                  <CreditCard size={18} />
+                  <CreditCard size={18} />{" "}
                   {user.role === "tutor" ? "Earnings" : "Payments"}
                 </Link>
 
@@ -278,16 +333,14 @@ const Navbar = () => {
                       onClick={() => setMobileOpen(false)}
                       className="flex items-center gap-3 py-2.5 text-surface-700"
                     >
-                      <BookOpen size={18} />
-                      My Subjects
+                      <BookOpen size={18} /> My Subjects
                     </Link>
                     <Link
                       to="/tutor/availability"
                       onClick={() => setMobileOpen(false)}
                       className="flex items-center gap-3 py-2.5 text-surface-700"
                     >
-                      <Clock size={18} />
-                      Availability
+                      <Clock size={18} /> Availability
                     </Link>
                   </>
                 )}
@@ -296,8 +349,7 @@ const Navbar = () => {
                   onClick={handleLogout}
                   className="flex items-center gap-3 py-2.5 text-danger w-full"
                 >
-                  <LogOut size={18} />
-                  Logout
+                  <LogOut size={18} /> Logout
                 </button>
               </>
             ) : (

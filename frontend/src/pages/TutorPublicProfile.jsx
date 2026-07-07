@@ -66,6 +66,14 @@ const TutorPublicProfile = () => {
     });
   };
 
+  const handleMessage = () => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+    navigate(`/messages?with=${tutor._id}`);
+  };
+
   if (loading) {
     return (
       <>
@@ -177,25 +185,47 @@ const TutorPublicProfile = () => {
                   </div>
                 )}
 
-                {/* Book button */}
-                {user?.role === "student" && (
-                  <Link
-                    to={`/book-session/${tutor._id}`}
-                    className="w-full flex items-center justify-center gap-2 py-3 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 transition-colors"
-                  >
-                    <Calendar size={16} />
-                    Book Session
-                  </Link>
-                )}
-                {!user && (
-                  <Link
-                    to="/login"
-                    className="w-full flex items-center justify-center gap-2 py-3 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 transition-colors"
-                  >
-                    <Calendar size={16} />
-                    Login to Book
-                  </Link>
-                )}
+                {/* Action buttons — student sees both, guest sees login prompt */}
+                <div className="space-y-2.5">
+                  {user?.role === "student" && (
+                    <>
+                      <Link
+                        to={`/book-session/${tutor._id}`}
+                        className="w-full flex items-center justify-center gap-2 py-3 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 transition-colors"
+                      >
+                        <Calendar size={16} />
+                        Book Session
+                      </Link>
+                      <button
+                        onClick={handleMessage}
+                        className="w-full flex items-center justify-center gap-2 py-3 border border-primary-200 text-primary-600 rounded-xl font-semibold hover:bg-primary-50 transition-colors"
+                      >
+                        <MessageSquare size={16} />
+                        Send Message
+                      </button>
+                    </>
+                  )}
+
+                  {user?.role === "tutor" && (
+                    <button
+                      onClick={handleMessage}
+                      className="w-full flex items-center justify-center gap-2 py-3 border border-primary-200 text-primary-600 rounded-xl font-semibold hover:bg-primary-50 transition-colors"
+                    >
+                      <MessageSquare size={16} />
+                      Send Message
+                    </button>
+                  )}
+
+                  {!user && (
+                    <Link
+                      to="/login"
+                      className="w-full flex items-center justify-center gap-2 py-3 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 transition-colors"
+                    >
+                      <Calendar size={16} />
+                      Login to Book
+                    </Link>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -302,7 +332,9 @@ const TutorPublicProfile = () => {
                         {[5, 4, 3, 2, 1].map((star) => {
                           const count = breakdown[star] || 0;
                           const percent =
-                            totalReviews > 0 ? (count / totalReviews) * 100 : 0;
+                            totalReviews > 0
+                              ? (count / totalReviews) * 100
+                              : 0;
                           return (
                             <div
                               key={star}

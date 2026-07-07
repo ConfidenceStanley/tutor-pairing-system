@@ -2,6 +2,10 @@ const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const asyncHandler = require("../utils/asyncHandler");
+const sendEmail = require("../utils/sendEmail");
+const { welcomeEmail } = require("../utils/emailTemplates");
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const generateToken = (id, role) => {
   return jwt.sign({ id, role }, process.env.JWT_SECRET, {
@@ -28,6 +32,8 @@ const buildUserResponse = (user, token) => {
     token,
   };
 };
+
+// ─── Register ─────────────────────────────────────────────────────────────────
 
 const register = asyncHandler(async (req, res) => {
   const {
@@ -73,6 +79,10 @@ const register = asyncHandler(async (req, res) => {
     sessionRate: role === "tutor" && sessionRate ? sessionRate : 0,
   });
 
+  // Fire-and-forget welcome email — never blocks or crashes registration
+  const { subject, html } = welcomeEmail(user.name);
+  sendEmail(user.email, subject, html);
+
   const token = generateToken(user._id, user.role);
 
   res.status(201).json({
@@ -80,6 +90,8 @@ const register = asyncHandler(async (req, res) => {
     data: buildUserResponse(user, token),
   });
 });
+
+// ─── Login ────────────────────────────────────────────────────────────────────
 
 const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
@@ -113,6 +125,8 @@ const login = asyncHandler(async (req, res) => {
     data: buildUserResponse(user, token),
   });
 });
+
+// ─── Get Me ───────────────────────────────────────────────────────────────────
 
 const getMe = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user.id).select("-password");

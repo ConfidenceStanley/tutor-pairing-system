@@ -1,8 +1,26 @@
 const Session = require("../models/Session");
 const User = require("../models/User");
 const asyncHandler = require("../utils/asyncHandler");
+const sendEmail = require("../utils/sendEmail");
+const {
+  sessionAcceptedEmail,
+  sessionDeclinedEmail,
+  sessionCancelledEmail,
+  sessionCompletedEmail,
+} = require("../utils/emailTemplates");
 
-// POST /api/sessions - Student creates a session request
+// ─── Helper: format date for emails ──────────────────────────────────────────
+
+const formatDate = (date) =>
+  new Date(date).toLocaleDateString("en-NG", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+// ─── POST /api/sessions ───────────────────────────────────────────────────────
+
 const createSession = asyncHandler(async (req, res) => {
   // Only students can create sessions
   if (req.user.role !== "student") {
@@ -73,7 +91,6 @@ const createSession = asyncHandler(async (req, res) => {
     throw new Error("Invalid mode");
   }
 
-  // If physical, location is helpful but not required
   const finalLocation = location ? location.trim() : "";
 
   // Calculate amount from tutor rate (proportional to duration)
@@ -109,7 +126,8 @@ const createSession = asyncHandler(async (req, res) => {
   });
 });
 
-// GET /api/sessions/my-sessions
+// ─── GET /api/sessions/my-sessions ───────────────────────────────────────────
+
 const getMySessions = asyncHandler(async (req, res) => {
   const { status } = req.query;
 
@@ -139,17 +157,24 @@ const getMySessions = asyncHandler(async (req, res) => {
   }
 
   const sessions = await Session.find(filter)
-    .populate("tutor", "name email profileImage department sessionRate averageRating")
+    .populate(
+      "tutor",
+      "name email profileImage department sessionRate averageRating"
+    )
     .populate("student", "name email profileImage department level")
     .sort({ createdAt: -1 });
 
   res.json({ success: true, data: sessions });
 });
 
-// GET /api/sessions/:id
+// ─── GET /api/sessions/:id ────────────────────────────────────────────────────
+
 const getSessionById = asyncHandler(async (req, res) => {
   const session = await Session.findById(req.params.id)
-    .populate("tutor", "name email profileImage department sessionRate averageRating")
+    .populate(
+      "tutor",
+      "name email profileImage department sessionRate averageRating"
+    )
     .populate("student", "name email profileImage department level");
 
   if (!session) {
@@ -158,7 +183,8 @@ const getSessionById = asyncHandler(async (req, res) => {
   }
 
   // Only the student or tutor involved can view
-  const isStudent = session.student._id.toString() === req.user._id.toString();
+  const isStudent =
+    session.student._id.toString() === req.user._id.toString();
   const isTutor = session.tutor._id.toString() === req.user._id.toString();
 
   if (!isStudent && !isTutor && req.user.role !== "admin") {
@@ -169,7 +195,8 @@ const getSessionById = asyncHandler(async (req, res) => {
   res.json({ success: true, data: session });
 });
 
-// PUT /api/sessions/:id/accept - Tutor accepts
+// ─── PUT /api/sessions/:id/accept ────────────────────────────────────────────
+
 const acceptSession = asyncHandler(async (req, res) => {
   const session = await Session.findById(req.params.id);
   if (!session) {
@@ -194,6 +221,16 @@ const acceptSession = asyncHandler(async (req, res) => {
     .populate("tutor", "name email profileImage department sessionRate")
     .populate("student", "name email profileImage department level");
 
+  // Fire-and-forget: notify student their session was accepted
+  const template = sessionAcceptedEmail(
+    populated.student.name,
+    populated.tutor.name,
+    populated.subject,
+    formatDate(populated.scheduledDate),
+    populated.scheduledTime
+  );
+  sendEmail(populated.student.email, template.subject, template.html);
+
   res.json({
     success: true,
     message: "Session accepted",
@@ -201,7 +238,8 @@ const acceptSession = asyncHandler(async (req, res) => {
   });
 });
 
-// PUT /api/sessions/:id/decline - Tutor declines
+// ─── PUT /api/sessions/:id/decline ───────────────────────────────────────────
+
 const declineSession = asyncHandler(async (req, res) => {
   const { reason } = req.body;
 
@@ -229,6 +267,15 @@ const declineSession = asyncHandler(async (req, res) => {
     .populate("tutor", "name email profileImage department sessionRate")
     .populate("student", "name email profileImage department level");
 
+  // Fire-and-forget: notify student their session was declined
+  const template = sessionDeclinedEmail(
+    populated.student.name,
+    populated.tutor.name,
+    populated.subject,
+    session.declineReason
+  );
+  sendEmail(populated.student.email, template.subject, template.html);
+
   res.json({
     success: true,
     message: "Session declined",
@@ -236,7 +283,8 @@ const declineSession = asyncHandler(async (req, res) => {
   });
 });
 
-// PUT /api/sessions/:id/complete - Tutor marks complete
+// ─── PUT /api/sessions/:id/complete ──────────────────────────────────────────
+
 const completeSession = asyncHandler(async (req, res) => {
   const session = await Session.findById(req.params.id);
   if (!session) {
@@ -261,6 +309,14 @@ const completeSession = asyncHandler(async (req, res) => {
     .populate("tutor", "name email profileImage department sessionRate")
     .populate("student", "name email profileImage department level");
 
+  // Fire-and-forget: notify student the session is complete + prompt review
+  const template = sessionCompletedEmail(
+    populated.student.name,
+    populated.tutor.name,
+    populated.subject
+  );
+  sendEmail(populated.student.email, template.subject, template.html);
+
   res.json({
     success: true,
     message: "Session marked as completed",
@@ -268,7 +324,8 @@ const completeSession = asyncHandler(async (req, res) => {
   });
 });
 
-// PUT /api/sessions/:id/cancel - Student cancels
+// ─── PUT /api/sessions/:id/cancel ────────────────────────────────────────────
+
 const cancelSession = asyncHandler(async (req, res) => {
   const { reason } = req.body;
 
@@ -295,6 +352,15 @@ const cancelSession = asyncHandler(async (req, res) => {
   const populated = await Session.findById(session._id)
     .populate("tutor", "name email profileImage department sessionRate")
     .populate("student", "name email profileImage department level");
+
+  // Fire-and-forget: notify tutor the session was cancelled
+  const template = sessionCancelledEmail(
+    populated.tutor.name,
+    populated.student.name,
+    populated.subject,
+    session.cancelReason
+  );
+  sendEmail(populated.tutor.email, template.subject, template.html);
 
   res.json({
     success: true,

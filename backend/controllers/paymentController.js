@@ -4,6 +4,11 @@ const Payment = require("../models/Payment");
 const Session = require("../models/Session");
 const User = require("../models/User");
 const asyncHandler = require("../utils/asyncHandler");
+const sendEmail = require("../utils/sendEmail");
+const {
+  paymentConfirmationEmail,
+  sessionRequestEmail,
+} = require("../utils/emailTemplates");
 
 const PAYSTACK_BASE = "https://api.paystack.co";
 
@@ -13,8 +18,17 @@ const paystackHeaders = () => ({
   "Content-Type": "application/json",
 });
 
-// POST /api/payments/initialize
-// Body: { tutorId, subject, topic, message, scheduledDate, scheduledTime, duration, mode, location }
+// Helper: format date for emails
+const formatDate = (date) =>
+  new Date(date).toLocaleDateString("en-NG", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+// ─── POST /api/payments/initialize ───────────────────────────────────────────
+
 const initializePayment = asyncHandler(async (req, res) => {
   // Only students can pay
   if (req.user.role !== "student") {
@@ -89,7 +103,9 @@ const initializePayment = asyncHandler(async (req, res) => {
   }
 
   // Generate unique reference
-  const reference = `TP-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
+  const reference = `TP-${Date.now()}-${crypto
+    .randomBytes(4)
+    .toString("hex")}`;
 
   // Store pending payment with booking data
   const payment = await Payment.create({
@@ -132,7 +148,6 @@ const initializePayment = asyncHandler(async (req, res) => {
     );
 
     if (!psResponse.data.status) {
-      // Clean up
       await Payment.findByIdAndDelete(payment._id);
       res.status(500);
       throw new Error("Payment initialization failed");
@@ -162,7 +177,8 @@ const initializePayment = asyncHandler(async (req, res) => {
   }
 });
 
-// GET /api/payments/verify/:reference
+// ─── GET /api/payments/verify/:reference ─────────────────────────────────────
+
 const verifyPayment = asyncHandler(async (req, res) => {
   const { reference } = req.params;
 
@@ -171,15 +187,18 @@ const verifyPayment = asyncHandler(async (req, res) => {
     throw new Error("Reference required");
   }
 
-  // Find payment record
-  const payment = await Payment.findOne({ reference });
+  // Find payment record — populate student and tutor for email use
+  const payment = await Payment.findOne({ reference })
+    .populate("student", "name email")
+    .populate("tutor", "name email");
+
   if (!payment) {
     res.status(404);
     throw new Error("Payment not found");
   }
 
   // Must belong to the requesting user
-  if (payment.student.toString() !== req.user._id.toString()) {
+  if (payment.student._id.toString() !== req.user._id.toString()) {
     res.status(403);
     throw new Error("Access denied");
   }
@@ -219,8 +238,8 @@ const verifyPayment = asyncHandler(async (req, res) => {
       // Create the session now
       const bd = payment.bookingData;
       const session = await Session.create({
-        student: payment.student,
-        tutor: payment.tutor,
+        student: payment.student._id,
+        tutor: payment.tutor._id,
         subject: bd.subject,
         topic: bd.topic,
         message: bd.message,
@@ -242,6 +261,35 @@ const verifyPayment = asyncHandler(async (req, res) => {
       const populated = await Session.findById(session._id)
         .populate("tutor", "name email profileImage department")
         .populate("student", "name email profileImage");
+
+      // Fire-and-forget: payment receipt to student
+      const amountInNaira = payment.amount / 100;
+      const paymentTemplate = paymentConfirmationEmail(
+        payment.student.name,
+        amountInNaira,
+        bd.subject,
+        payment.tutor.name,
+        reference
+      );
+      sendEmail(
+        payment.student.email,
+        paymentTemplate.subject,
+        paymentTemplate.html
+      );
+
+      // Fire-and-forget: new session request notification to tutor
+      const sessionTemplate = sessionRequestEmail(
+        payment.tutor.name,
+        payment.student.name,
+        bd.subject,
+        formatDate(bd.scheduledDate),
+        bd.scheduledTime
+      );
+      sendEmail(
+        payment.tutor.email,
+        sessionTemplate.subject,
+        sessionTemplate.html
+      );
 
       return res.json({
         success: true,
@@ -267,7 +315,8 @@ const verifyPayment = asyncHandler(async (req, res) => {
   }
 });
 
-// GET /api/payments/my-payments
+// ─── GET /api/payments/my-payments ───────────────────────────────────────────
+
 const getMyPayments = asyncHandler(async (req, res) => {
   const filter =
     req.user.role === "tutor"

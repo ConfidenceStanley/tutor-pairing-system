@@ -15,6 +15,7 @@ import SearchTutors from "./pages/SearchTutors";
 import BookSession from "./pages/BookSession";
 import PaymentCallback from "./pages/PaymentCallback";
 import PaymentHistory from "./pages/PaymentHistory";
+import Messages from "./pages/Messages";
 
 const App = () => {
   return (
@@ -25,8 +26,8 @@ const App = () => {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/tutor/profile/:id" element={<TutorPublicProfile />} />
           <Route path="/tutors" element={<SearchTutors />} />
+          <Route path="/tutor/profile/:id" element={<TutorPublicProfile />} />
 
           {/* Protected - Any authenticated user */}
           <Route
@@ -34,6 +35,30 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <EditProfile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/payment/callback"
+            element={
+              <ProtectedRoute>
+                <PaymentCallback />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/payments"
+            element={
+              <ProtectedRoute>
+                <PaymentHistory />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/messages"
+            element={
+              <ProtectedRoute>
+                <Messages />
               </ProtectedRoute>
             }
           />
@@ -45,6 +70,16 @@ const App = () => {
               <ProtectedRoute>
                 <RoleRoute allowedRoles={["student"]}>
                   <StudentDashboard />
+                </RoleRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/book-session/:tutorId"
+            element={
+              <ProtectedRoute>
+                <RoleRoute allowedRoles={["student"]}>
+                  <BookSession />
                 </RoleRoute>
               </ProtectedRoute>
             }
@@ -61,7 +96,6 @@ const App = () => {
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/tutor/subjects"
             element={
@@ -72,7 +106,6 @@ const App = () => {
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/tutor/availability"
             element={
@@ -80,36 +113,6 @@ const App = () => {
                 <RoleRoute allowedRoles={["tutor"]}>
                   <TutorAvailability />
                 </RoleRoute>
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/book-session/:tutorId"
-            element={
-              <ProtectedRoute>
-                <RoleRoute allowedRoles={["student"]}>
-                  <BookSession />
-                </RoleRoute>
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/payment/callback"
-            element={
-              <ProtectedRoute>
-                <PaymentCallback />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Payment history */}
-          <Route
-            path="/payments"
-            element={
-              <ProtectedRoute>
-                <PaymentHistory />
               </ProtectedRoute>
             }
           />
