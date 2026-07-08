@@ -58,12 +58,22 @@ const Register = () => {
     }
     setLoading(true);
     try {
-      const payload = { ...data, role: selectedRole, subjects: selectedRole === "tutor" ? subjects : [] };
+      const payload = {
+        ...data,
+        role: selectedRole,
+        subjects: selectedRole === "tutor" ? subjects : [],
+      };
       const response = await registerUser(payload);
-      login(response.data, response.data.token);
-      toast.success("Account created successfully");
+
+      // token lives inside response.data alongside user fields
+      const { token, ...userData } = response.data;
+
+      login(userData, token);
+      toast.success("Account created successfully!");
+
       if (selectedRole === "student") navigate("/student/dashboard");
-      if (selectedRole === "tutor") navigate("/tutor/dashboard");
+      else if (selectedRole === "tutor") navigate("/tutor/dashboard");
+      else navigate("/");
     } catch (error) {
       toast.error(error.response?.data?.message || "Registration failed");
     } finally {
@@ -106,11 +116,18 @@ const Register = () => {
                 className="group border-2 border-surface-200 rounded-2xl p-6 flex flex-col items-center gap-3 hover:border-primary-400 hover:bg-primary-50 transition-all duration-200 cursor-pointer"
               >
                 <div className="w-14 h-14 bg-surface-100 group-hover:bg-primary-100 rounded-2xl flex items-center justify-center transition-colors duration-200">
-                  <UserRound size={28} className="text-surface-500 group-hover:text-primary-600 transition-colors duration-200" />
+                  <UserRound
+                    size={28}
+                    className="text-surface-500 group-hover:text-primary-600 transition-colors duration-200"
+                  />
                 </div>
                 <div className="text-center">
-                  <p className="font-semibold text-surface-800 text-sm">Student</p>
-                  <p className="text-xs text-surface-400 mt-0.5">I need academic help</p>
+                  <p className="font-semibold text-surface-800 text-sm">
+                    Student
+                  </p>
+                  <p className="text-xs text-surface-400 mt-0.5">
+                    I need academic help
+                  </p>
                 </div>
               </button>
 
@@ -119,17 +136,27 @@ const Register = () => {
                 className="group border-2 border-surface-200 rounded-2xl p-6 flex flex-col items-center gap-3 hover:border-primary-400 hover:bg-primary-50 transition-all duration-200 cursor-pointer"
               >
                 <div className="w-14 h-14 bg-surface-100 group-hover:bg-primary-100 rounded-2xl flex items-center justify-center transition-colors duration-200">
-                  <BookOpen size={28} className="text-surface-500 group-hover:text-primary-600 transition-colors duration-200" />
+                  <BookOpen
+                    size={28}
+                    className="text-surface-500 group-hover:text-primary-600 transition-colors duration-200"
+                  />
                 </div>
                 <div className="text-center">
-                  <p className="font-semibold text-surface-800 text-sm">Tutor</p>
-                  <p className="text-xs text-surface-400 mt-0.5">I want to teach</p>
+                  <p className="font-semibold text-surface-800 text-sm">
+                    Tutor
+                  </p>
+                  <p className="text-xs text-surface-400 mt-0.5">
+                    I want to teach
+                  </p>
                 </div>
               </button>
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 animate-scale-in">
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="space-y-4 animate-scale-in"
+          >
             <div className="flex items-center gap-2 mb-2">
               <button
                 type="button"
@@ -156,7 +183,9 @@ const Register = () => {
                   {...register("name", { required: "Full name is required" })}
                 />
                 {errors.name && (
-                  <p className="text-danger text-xs mt-1.5">{errors.name.message}</p>
+                  <p className="text-danger text-xs mt-1.5">
+                    {errors.name.message}
+                  </p>
                 )}
               </div>
 
@@ -177,7 +206,9 @@ const Register = () => {
                   })}
                 />
                 {errors.email && (
-                  <p className="text-danger text-xs mt-1.5">{errors.email.message}</p>
+                  <p className="text-danger text-xs mt-1.5">
+                    {errors.email.message}
+                  </p>
                 )}
               </div>
 
@@ -207,7 +238,9 @@ const Register = () => {
                   </button>
                 </div>
                 {errors.password && (
-                  <p className="text-danger text-xs mt-1.5">{errors.password.message}</p>
+                  <p className="text-danger text-xs mt-1.5">
+                    {errors.password.message}
+                  </p>
                 )}
               </div>
 
@@ -222,11 +255,15 @@ const Register = () => {
                   >
                     <option value="">Select</option>
                     {DEPARTMENTS.map((dept) => (
-                      <option key={dept} value={dept}>{dept}</option>
+                      <option key={dept} value={dept}>
+                        {dept}
+                      </option>
                     ))}
                   </select>
                   {errors.department && (
-                    <p className="text-danger text-xs mt-1.5">{errors.department.message}</p>
+                    <p className="text-danger text-xs mt-1.5">
+                      {errors.department.message}
+                    </p>
                   )}
                 </div>
 
@@ -240,11 +277,15 @@ const Register = () => {
                   >
                     <option value="">Select</option>
                     {LEVELS.map((lvl) => (
-                      <option key={lvl} value={lvl}>{lvl}</option>
+                      <option key={lvl} value={lvl}>
+                        {lvl}
+                      </option>
                     ))}
                   </select>
                   {errors.level && (
-                    <p className="text-danger text-xs mt-1.5">{errors.level.message}</p>
+                    <p className="text-danger text-xs mt-1.5">
+                      {errors.level.message}
+                    </p>
                   )}
                 </div>
               </div>
