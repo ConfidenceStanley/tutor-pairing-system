@@ -45,6 +45,10 @@ app.get("/", (req, res) => {
   res.json({ success: true, message: "Tutor Pairing API is running" });
 });
 
+app.get("/healthz", (req, res) => {
+  res.status(200).send("OK");
+});
+
 app.use("/api/auth", authRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/tutors", tutorRoutes);
